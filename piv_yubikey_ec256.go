@@ -12,6 +12,7 @@ import (
 	"io"
 	"strings"
 
+	"filippo.io/age/internal/bech32"
 	"filippo.io/age/internal/format"
 	"github.com/go-piv/piv-go/piv"
 	"github.com/pkg/errors"
@@ -20,6 +21,7 @@ import (
 )
 
 const PivYubikeyEC256Label = "age-encryption.org/v1/PivYubikeyEC256"
+const PivYubikeyEC256LabelBech = "agepyec256"
 
 // PivYubikeyEC256Recipient is the standard age public key. Messages encrypted to this
 // recipient can be decrypted with the corresponding PivYubikeyEC256Identity.
@@ -31,9 +33,41 @@ type PivYubikeyEC256Recipient struct {
 	compressed []byte
 }
 
-// ParsePivYubikeyEC256Recipient returns a new PivYubikeyEC256Recipient from a
-// PEM-encoded string
-func ParsePivYubikeyEC256Recipient(s string) (r *PivYubikeyEC256Recipient, err error) {
+func ParseBech32PivYubikeyEC256Recipient(
+	s string,
+) (r *PivYubikeyEC256Recipient, err error) {
+	var t string
+	var k []byte
+
+	t, k, err = bech32.Decode(s)
+
+	switch {
+	case err != nil:
+		err = fmt.Errorf("malformed recipient %q: %v", s, err)
+		return
+
+	case t != PivYubikeyEC256LabelBech:
+		err = fmt.Errorf("malformed recipient %q: invalid type %q", s, t)
+		return
+	}
+
+	x, y := elliptic.UnmarshalCompressed(elliptic.P256(), k)
+
+	r = &PivYubikeyEC256Recipient{
+		PublicKey: &ecdsa.PublicKey{
+			Curve: elliptic.P256(),
+			X:     x,
+			Y:     y,
+		},
+    compressed: k,
+	}
+
+	return
+}
+
+func ParsePEMPivYubikeyEC256Recipient(
+	s string,
+) (r *PivYubikeyEC256Recipient, err error) {
 	block, rest := pem.Decode([]byte(s))
 
 	switch {
@@ -46,9 +80,17 @@ func ParsePivYubikeyEC256Recipient(s string) (r *PivYubikeyEC256Recipient, err e
 		return
 	}
 
+	if r, err = ParseRawPivYubikeyEC256Recipient(block.Bytes); err != nil {
+		return
+	}
+
+	return
+}
+
+func ParseRawPivYubikeyEC256Recipient(b []byte) (r *PivYubikeyEC256Recipient, err error) {
 	var pub interface{}
 
-	if pub, err = x509.ParsePKIXPublicKey(block.Bytes); err != nil {
+	if pub, err = x509.ParsePKIXPublicKey(b); err != nil {
 		return
 	}
 
@@ -66,6 +108,37 @@ func ParsePivYubikeyEC256Recipient(s string) (r *PivYubikeyEC256Recipient, err e
 		r.X,
 		r.Y,
 	)
+
+	return
+}
+
+func (r *PivYubikeyEC256Recipient) Bech32() (s string, err error) {
+	if s, err = bech32.Encode("agepyec256", r.compressed); err != nil {
+    return
+	}
+
+	return
+}
+
+func (r *PivYubikeyEC256Recipient) PEM() (s string, err error) {
+  var bPKIX []byte
+
+	if bPKIX, err = x509.MarshalPKIXPublicKey(r.PublicKey); err != nil {
+		return
+	}
+
+  pemBlock := &pem.Block{
+    Type: "PUBLIC KEY",
+    Bytes: bPKIX,
+  }
+
+  sPEM := &strings.Builder{}
+
+	if err = pem.Encode(sPEM, pemBlock); err != nil {
+    return
+  }
+
+  s = sPEM.String()
 
 	return
 }

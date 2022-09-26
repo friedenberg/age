@@ -194,9 +194,42 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEkSp+oWi+/8O9IizEdfz2+Nslm/yH
 eQvjM8EVcHLOzcu/3HOIG7MbMEvOPmIQW+M/cZK2SS6WY5w1ofC8h2vXYQ==
 -----END PUBLIC KEY-----
 `
+const pubBechString = "agepyec2561qwgj5l4pdzl0lsaaygkvga0u7mudkfvmljrhjzlrx0q32urjemxuks73tst"
+
+func TestParseBechPivYubikeyEC256Recipient(t *testing.T) {
+	r, err := age.ParseBech32PivYubikeyEC256Recipient(pubBechString)
+
+	if err != nil {
+		t.Errorf("expected no error but got %s", err)
+	}
+
+	if r == nil {
+		t.Errorf("expected some recipient but got nil")
+	}
+
+  s, err := r.Bech32()
+
+	if err != nil {
+		t.Fatalf("expected no error but got %s", err)
+	}
+
+  if s != pubBechString {
+    t.Fatalf("expected %q but got %q", pubBechString, s)
+  }
+
+  s, err = r.PEM()
+
+	if err != nil {
+		t.Fatalf("expected no error but got %s", err)
+	}
+
+  if s != pubKeyString {
+    t.Fatalf("expected %q but got %q", pubBechString, s)
+  }
+}
 
 func TestParsePivYubikeyEC256Recipient(t *testing.T) {
-	r, err := age.ParsePivYubikeyEC256Recipient(pubKeyString)
+	r, err := age.ParsePEMPivYubikeyEC256Recipient(pubKeyString)
 
 	if err != nil {
 		t.Errorf("expected no error but got %s", err)
