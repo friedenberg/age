@@ -189,6 +189,66 @@ func TestEncryptDecryptScrypt(t *testing.T) {
 	}
 }
 
+const pubKeyString = `-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEkSp+oWi+/8O9IizEdfz2+Nslm/yH
+eQvjM8EVcHLOzcu/3HOIG7MbMEvOPmIQW+M/cZK2SS6WY5w1ofC8h2vXYQ==
+-----END PUBLIC KEY-----
+`
+
+func TestParsePivYubikeyEC256Recipient(t *testing.T) {
+	r, err := age.ParsePivYubikeyEC256Recipient(pubKeyString)
+
+	if err != nil {
+		t.Errorf("expected no error but got %s", err)
+	}
+
+	if r == nil {
+		t.Errorf("expected some recipient but got nil")
+	}
+
+	i, err := age.ReadPivYubikeyEC256Identity(*r)
+
+	if i == nil {
+		t.Fatalf("expected some identity but got nil")
+	}
+
+	if err != nil {
+		t.Fatalf("expected no error but got %s", err)
+	}
+
+	buf := &bytes.Buffer{}
+
+	w, err := age.Encrypt(buf, r)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := io.WriteString(w, helloWorld); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := age.Decrypt(buf, i)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	outBytes, err := io.ReadAll(out)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(outBytes) != helloWorld {
+		t.Errorf("wrong data: %q, excepted %q", outBytes, helloWorld)
+	}
+}
+
 func TestParseIdentities(t *testing.T) {
 	tests := []struct {
 		name      string

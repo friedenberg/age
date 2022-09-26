@@ -9,6 +9,11 @@ require (
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b
 )
 
+require (
+	github.com/go-piv/piv-go v1.10.0 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
+)
+
 // Test dependencies.
 require (
 	github.com/creack/pty v1.1.18 // indirect
