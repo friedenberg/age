@@ -33,15 +33,43 @@ const (
 	lastChunkFlag = 0x01
 )
 
-func NewReader(key []byte, src io.Reader) (*Reader, error) {
-	aead, err := chacha20poly1305.New(key)
-	if err != nil {
-		return nil, err
+func NewReader(key []byte, src io.Reader) (r *Reader, err error) {
+	r = &Reader{}
+
+	if err = r.resetSoft(key, src); err != nil {
+		return
 	}
-	return &Reader{
-		a:   aead,
-		src: src,
-	}, nil
+
+	return
+}
+
+func (r *Reader) resetSoft(key []byte, src io.Reader) (err error) {
+	if r.a, err = chacha20poly1305.New(key); err != nil {
+		return
+	}
+
+	r.src = src
+
+	return
+}
+
+func (r *Reader) Reset(key []byte, src io.Reader) (err error) {
+	r.err = nil
+	r.unread = nil
+
+	for i, _ := range r.buf {
+		r.buf[i] = 0
+	}
+
+	for i, _ := range r.nonce {
+		r.nonce[i] = 0
+	}
+
+	if err = r.resetSoft(key, src); err != nil {
+		return
+	}
+
+	return
 }
 
 func (r *Reader) Read(p []byte) (int, error) {
@@ -156,17 +184,43 @@ type Writer struct {
 	err       error
 }
 
-func NewWriter(key []byte, dst io.Writer) (*Writer, error) {
-	aead, err := chacha20poly1305.New(key)
-	if err != nil {
-		return nil, err
+func NewWriter(key []byte, dst io.Writer) (w *Writer, err error) {
+	w = &Writer{}
+
+	if err = w.resetSoft(key, dst); err != nil {
+		return
 	}
-	w := &Writer{
-		a:   aead,
-		dst: dst,
+
+	return
+}
+
+func (w *Writer) resetSoft(key []byte, dst io.Writer) (err error) {
+	if w.a, err = chacha20poly1305.New(key); err != nil {
+		return err
 	}
+
+	w.dst = dst
 	w.unwritten = w.buf[:0]
-	return w, nil
+
+	return
+}
+
+func (r *Writer) Reset(key []byte, dst io.Writer) (err error) {
+	r.err = nil
+
+	for i, _ := range r.buf {
+		r.buf[i] = 0
+	}
+
+	for i, _ := range r.nonce {
+		r.nonce[i] = 0
+	}
+
+	if err = r.resetSoft(key, dst); err != nil {
+		return
+	}
+
+	return
 }
 
 func (w *Writer) Write(p []byte) (n int, err error) {

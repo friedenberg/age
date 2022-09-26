@@ -106,7 +106,7 @@ const streamNonceSize = 16
 //
 // The caller must call Close on the WriteCloser when done for the last chunk to
 // be encrypted and flushed to dst.
-func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
+func Encrypt(dst io.Writer, recipients ...Recipient) (*stream.Writer, error) {
 	if len(recipients) == 0 {
 		return nil, errors.New("no recipients specified")
 	}
@@ -153,7 +153,14 @@ func Encrypt(dst io.Writer, recipients ...Recipient) (io.WriteCloser, error) {
 		return nil, fmt.Errorf("failed to write nonce: %v", err)
 	}
 
-	return stream.NewWriter(streamKey(fileKey, nonce), dst)
+	var w *stream.Writer
+	var err error
+
+	if w, err = instancePool.GetWriter(streamKey(fileKey, nonce), dst); err != nil {
+		return nil, err
+	}
+
+	return w, nil
 }
 
 // NoIdentityMatchError is returned by Decrypt when none of the supplied
@@ -172,7 +179,7 @@ func (*NoIdentityMatchError) Error() string {
 //
 // It returns a Reader reading the decrypted plaintext of the age file read
 // from src. All identities will be tried until one successfully decrypts the file.
-func Decrypt(src io.Reader, identities ...Identity) (io.Reader, error) {
+func Decrypt(src io.Reader, identities ...Identity) (*stream.Reader, error) {
 	if len(identities) == 0 {
 		return nil, errors.New("no identities specified")
 	}
@@ -215,7 +222,13 @@ func Decrypt(src io.Reader, identities ...Identity) (io.Reader, error) {
 		return nil, fmt.Errorf("failed to read nonce: %w", err)
 	}
 
-	return stream.NewReader(streamKey(fileKey, nonce), payload)
+	var r *stream.Reader
+
+	if r, err = instancePool.GetReader(streamKey(fileKey, nonce), payload); err != nil {
+		return nil, err
+	}
+
+	return r, nil
 }
 
 // multiUnwrap is a helper that implements Identity.Unwrap in terms of a

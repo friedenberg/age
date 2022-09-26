@@ -220,3 +220,47 @@ AGE-SECRET-KEY--1D6K0SGAX3NU66R4GYFZY0UQWCLM3UUSF3CXLW4KXZM342WQSJ82QKU59Q`},
 		})
 	}
 }
+
+func BenchmarkEncryptNoPool(b *testing.B) {
+	publicKey := "age1cy0su9fwf3gf9mw868g5yut09p6nytfmmnktexz2ya5uqg9vl9sss4euqm"
+	recipient, err := age.ParseX25519Recipient(publicKey)
+
+	if err != nil {
+		log.Fatalf("Failed to parse public key %q: %v", publicKey, err)
+	}
+
+	out := &bytes.Buffer{}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, err = age.Encrypt(out, recipient)
+
+		if err != nil {
+			log.Fatalf("Failed to create writer: %v", err)
+		}
+	}
+}
+
+func BenchmarkEncryptYesPool(b *testing.B) {
+	publicKey := "age1cy0su9fwf3gf9mw868g5yut09p6nytfmmnktexz2ya5uqg9vl9sss4euqm"
+	recipient, err := age.ParseX25519Recipient(publicKey)
+
+	if err != nil {
+		log.Fatalf("Failed to parse public key %q: %v", publicKey, err)
+	}
+
+	out := &bytes.Buffer{}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		w, err := age.Encrypt(out, recipient)
+
+		if err != nil {
+			log.Fatalf("Failed to create writer: %v", err)
+		}
+
+		age.PutWriter(w)
+	}
+}
