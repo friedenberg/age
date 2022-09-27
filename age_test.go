@@ -190,11 +190,12 @@ func TestEncryptDecryptScrypt(t *testing.T) {
 }
 
 const pubKeyString = `-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEkSp+oWi+/8O9IizEdfz2+Nslm/yH
-eQvjM8EVcHLOzcu/3HOIG7MbMEvOPmIQW+M/cZK2SS6WY5w1ofC8h2vXYQ==
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE/ZaSV5Z7WAJiAJeX8LkuYzkZZ+Zu
+VHhNZLqTAghsPIDk+ZQVb6Lv2e5QryqkT+o08pHE3ki+BWybjVQtQMxeMQ==
 -----END PUBLIC KEY-----
 `
-const pubBechString = "agepyec2561qwgj5l4pdzl0lsaaygkvga0u7mudkfvmljrhjzlrx0q32urjemxuks73tst"
+
+const pubBechString = "agepyec2561q07edyjhjea4sqnzqzte0u9e9e3njxt8ueh9g7zdvjafxqsgds7gqq9zvu2"
 
 func TestParseBechPivYubikeyEC256Recipient(t *testing.T) {
 	r, err := age.ParseBech32PivYubikeyEC256Recipient(pubBechString)
@@ -207,28 +208,28 @@ func TestParseBechPivYubikeyEC256Recipient(t *testing.T) {
 		t.Errorf("expected some recipient but got nil")
 	}
 
-  s, err := r.Bech32()
+	s, err := r.Bech32()
 
 	if err != nil {
 		t.Fatalf("expected no error but got %s", err)
 	}
 
-  if s != pubBechString {
-    t.Fatalf("expected %q but got %q", pubBechString, s)
-  }
+	if s != pubBechString {
+		t.Fatalf("expected %q but got %q", pubBechString, s)
+	}
 
-  s, err = r.PEM()
+	s, err = r.PEM()
 
 	if err != nil {
 		t.Fatalf("expected no error but got %s", err)
 	}
 
-  if s != pubKeyString {
-    t.Fatalf("expected %q but got %q", pubBechString, s)
-  }
+	if s != pubKeyString {
+		t.Fatalf("expected %q but got %q", pubKeyString, s)
+	}
 }
 
-func TestParsePivYubikeyEC256Recipient(t *testing.T) {
+func TestParsePEMPivYubikeyEC256Recipient(t *testing.T) {
 	r, err := age.ParsePEMPivYubikeyEC256Recipient(pubKeyString)
 
 	if err != nil {
@@ -239,7 +240,17 @@ func TestParsePivYubikeyEC256Recipient(t *testing.T) {
 		t.Errorf("expected some recipient but got nil")
 	}
 
-	i, err := age.ReadPivYubikeyEC256Identity(*r)
+	s, err := r.Bech32()
+
+	if err != nil {
+		t.Fatalf("expected no error but got %s", err)
+	}
+
+	if s != pubBechString {
+		t.Fatalf("expected %q but got %q", pubBechString, s)
+	}
+
+	i, err := age.ReadPivYubikeyEC256Identity(r)
 
 	if i == nil {
 		t.Fatalf("expected some identity but got nil")
@@ -263,6 +274,10 @@ func TestParsePivYubikeyEC256Recipient(t *testing.T) {
 
 	if err := w.Close(); err != nil {
 		t.Fatal(err)
+	}
+
+	if bytes.Equal(buf.Bytes(), []byte(helloWorld)) {
+		t.Fatal("equals")
 	}
 
 	out, err := age.Decrypt(buf, i)

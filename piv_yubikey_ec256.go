@@ -196,13 +196,13 @@ type PivYubikeyEC256Identity struct {
 	yk           *piv.YubiKey
 	slot         piv.Slot
 	privateKey   *piv.ECDSAPrivateKey
-	ourPublicKey PivYubikeyEC256Recipient
+	ourPublicKey *PivYubikeyEC256Recipient
 }
 
 // ParsePivYubikeyEC256Identity returns a new PivYubikeyEC256Identity from a Bech32 private key
 // encoding with the "AGE-SECRET-KEY-1" prefix.
 func ReadPivYubikeyEC256Identity(
-	r PivYubikeyEC256Recipient,
+	r *PivYubikeyEC256Recipient,
 	slots ...piv.Slot,
 ) (i *PivYubikeyEC256Identity, err error) {
 	i = &PivYubikeyEC256Identity{
@@ -274,6 +274,10 @@ func ReadPivYubikeyEC256Identity(
 	return
 }
 
+func (i *PivYubikeyEC256Identity) Close() error {
+  return i.yk.Close()
+}
+
 func (i *PivYubikeyEC256Identity) Unwrap(stanzas []*Stanza) ([]byte, error) {
 	return multiUnwrap(i.unwrap, stanzas)
 }
@@ -334,7 +338,7 @@ func (i *PivYubikeyEC256Identity) unwrap(block *Stanza) (fileKey []byte, err err
 }
 
 // Recipient returns the public EC256Recipient value corresponding to i.
-func (i *PivYubikeyEC256Identity) Recipient() (r PivYubikeyEC256Recipient) {
+func (i *PivYubikeyEC256Identity) Recipient() (r *PivYubikeyEC256Recipient) {
 	r = i.ourPublicKey
 	return
 }
